@@ -25,7 +25,7 @@ class Archiver {
         this.archive = new Archive();
     }
 
-    async addFiles(files) {
+    addFiles(files) {
         if (this.archive) {
             let filesArray = Array.from(files);
             try {
@@ -94,7 +94,7 @@ class Archiver {
         return bundeledFiles;
     }
 
-    async decrypt(blobStream, config, password, callback) {
+    async decrypt(blobStream, metadata, password, callback) {
         if (!blobStream || !password) {
             return null;
         }
@@ -107,18 +107,18 @@ class Archiver {
         this.password = password || this.password;
         this.keychain = new Keychain(password);
 
-        config = await this.keychain.decryptMetadata(
-            b64ToArray(config)
+        metadata = await this.keychain.decryptMetadata(
+            b64ToArray(metadata)
         );
 
         const decryptStream = await this.keychain.decryptStream(blobStream);
 
         let zipStream = null;
-        if (config.type === "send-archive") {
-            const zip = new Zip(config.manifest, decryptStream);
+        if (metadata.type === "send-archive") {
+            const zip = new Zip(metadata.manifest, decryptStream);
             zipStream = zip.stream;
-            config.type = "application/zip";
-            config.size = zip.size;
+            metadata.type = "application/zip";
+            metadata.size = zip.size;
         }
 
         let downloadedBytes = 0;
@@ -129,7 +129,7 @@ class Archiver {
                 transform(chunk, controller) {
                     downloadedBytes += chunk.length;
                     let percentComplete = Math.floor(
-                        (downloadedBytes / config.size) * 100
+                        (downloadedBytes / metadata.size) * 100
                     );
                     if (callback) {
                         callback(percentComplete);
@@ -143,16 +143,16 @@ class Archiver {
         );
 
         const headers = {
-            "Content-Disposition": `attachment; filename='${config.name}'`,
-            "Content-Type": config.type,
-            "Content-Length": config.size.toString(),
+            "Content-Disposition": `attachment; filename='${metadata.name}'`,
+            "Content-Type": metadata.type,
+            "Content-Length": metadata.size.toString(),
         };
 
         const readableStream = new Response(responseStream, { headers });
 
         const blob = await readableStream.blob();
         
-        return {blob, fileName: config.name, fileType: config.type};
+        return {blob, fileName: metadata.name, fileType: metadata.type};
     }
 
 }

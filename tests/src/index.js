@@ -10,7 +10,7 @@ upload.multiple = true;
 upload.accept = "*";
 upload.addEventListener("change", async () => {
     const files = upload.files;
-    await cryptoArchiver.addFiles(files);
+    cryptoArchiver.addFiles(files);
 });
 
 let encButton = document.createElement("button");
